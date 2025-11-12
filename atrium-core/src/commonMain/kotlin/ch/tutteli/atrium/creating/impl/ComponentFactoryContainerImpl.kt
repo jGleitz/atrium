@@ -8,7 +8,7 @@ import ch.tutteli.atrium.creating.feature.ExperimentalFeatureInfo
 import ch.tutteli.atrium.creating.feature.impl.StackTraceBasedFeatureInfo
 import ch.tutteli.atrium.creating.feature.FeatureInfo
 import ch.tutteli.atrium.reporting.*
-import ch.tutteli.atrium.reporting.erroradjusters.MultiAtriumErrorAdjuster
+import ch.tutteli.atrium.reporting.AtriumErrorAdjuster
 import ch.tutteli.atrium.reporting.erroradjusters.RemoveAtriumFromAtriumError
 import ch.tutteli.atrium.reporting.erroradjusters.RemoveRunnerFromAtriumError
 import ch.tutteli.atrium.reporting.erroradjusters.impl.RemoveAtriumFromAtriumErrorImpl
@@ -134,14 +134,13 @@ internal object DefaultComponentFactoryContainer : ComponentFactoryContainer by 
             UsingDefaultTranslator(c.build<LocaleProvider>().getPrimaryLocale())
         },
         LocaleOrderDecider::class createVia { _ -> ResourceBundleInspiredLocaleOrderDecider },
-        RemoveAtriumFromAtriumError::class createVia { _ -> RemoveAtriumFromAtriumErrorImpl() },
-        RemoveRunnerFromAtriumError::class createVia { _ -> RemoveRunnerFromAtriumErrorImpl() },
+        RemoveAtriumFromAtriumError::class createVia  { RemoveAtriumFromAtriumErrorImpl() },
+        RemoveRunnerFromAtriumError::class createVia { RemoveRunnerFromAtriumErrorImpl() },
+        StackBacktraceAdjuster::class createVia { c ->
+            c.build<RemoveAtriumFromAtriumError>().then(c.build<RemoveRunnerFromAtriumError>())
+        },
         AtriumErrorAdjuster::class createSingletonVia { c ->
-            MultiAtriumErrorAdjuster(
-                c.build<RemoveAtriumFromAtriumError>(),
-                c.build<RemoveRunnerFromAtriumError>(),
-                emptyList()
-            )
+            AtriumErrorAdjuster.forStackBacktraceAdjuster(c.build())
         },
 
         FeatureInfo::class createVia { _ ->

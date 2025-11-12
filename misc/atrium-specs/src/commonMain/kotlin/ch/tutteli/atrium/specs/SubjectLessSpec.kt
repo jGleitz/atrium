@@ -16,7 +16,6 @@ import ch.tutteli.atrium.creating.ExperimentalComponentFactoryContainer
 import ch.tutteli.atrium.logic._logic
 import ch.tutteli.atrium.logic.creating.RootExpectBuilder
 import ch.tutteli.atrium.reporting.AtriumErrorAdjuster
-import ch.tutteli.atrium.reporting.erroradjusters.NoOpAtriumErrorAdjuster
 import org.spekframework.spek2.Spek
 import org.spekframework.spek2.style.specification.describe
 
@@ -40,7 +39,7 @@ abstract class SubjectLessSpec<T>(
                 val expect = RootExpectBuilder.forSubject(1.1)
                     .withVerb("custom assertion verb")
                     .withOptions {
-                        withComponent(AtriumErrorAdjuster::class) { _ -> NoOpAtriumErrorAdjuster }
+                        withComponent(AtriumErrorAdjuster::class) { AtriumErrorAdjuster.NoOp }
                     }
                     .build()
 

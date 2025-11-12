@@ -1,51 +1,34 @@
 package ch.tutteli.atrium.reporting
 
-//TODO move to package errorAdjusters with 1.3.0
-/**
- * Responsible to adjust a given [Throwable] (usually an [AtriumError]) for improved error reporting.
- *
- * Typically, this involves filtering the stack traces (`stackTrace` in JVM, `stack` in JS) in some way
- * or another (also the stack trace of the cause or suppressed [Throwable]s).
- */
-expect interface AtriumErrorAdjuster : AtriumErrorAdjusterCommon{
-    /**
-     * Adjusts the given [throwable] -  typically this involves filtering the stack trace
-     * (`stackTrace` in JVM, `stack` in JS) in some way or another as well as the stack traces of a [Throwable.cause]
-     * and other stack traces (e.g. stack traces of suppressed throwable in JVM).
-     *
-     * Usually the given [throwable] is an [AtriumError] but an arbitrary Throwable can be passed
-     */
-    override fun adjust(throwable: Throwable)
+import ch.tutteli.atrium.reporting.erroradjusters.AtriumErrorStackAdjuster
 
-    /**
-     * Adjusts parts of the given [throwable] but not its stack trace.
-     *
-     * This method is intended for usages where the stack trace is modified by multiple [AtriumErrorAdjuster]s (part
-     * of the platform specific [AtriumErrorAdjuster] interface).
-     */
-    override fun adjustOtherThanStacks(throwable: Throwable)
-}
 
 //TODO move to package errorAdjusters with 1.3.0
 /**
- * Defines the general contract for [AtriumError] adjusters which all platforms have to fulfil.
+ * Adjusts a [Throwable] (usually an [AtriumError]) for improved reporting.
  */
-interface AtriumErrorAdjusterCommon {
+interface AtriumErrorAdjuster {
 
     /**
-     * Adjusts the given [throwable] -  typically this involves filtering the stack trace
-     * (`stackTrace` in JVM, `stack` in JS) in some way or another as well as the stack traces of a [Throwable.cause]
-     * and other stack traces (e.g. stack traces of suppressed throwable in JVM).
+     * Adjusts the given [throwable]. Usually, the [throwable] is an [AtriumError]. However, any
+     * [Throwable] can be passed.
      *
-     * Usually the given [throwable] is an [AtriumError] but an arbitrary Throwable can be passed
+     * @see StackBacktraceAdjuster if only the stack trace of [throwable] needs to be adjusted.
      */
-    fun adjust(throwable: Throwable)
+    fun adjust(throwable: Throwable): Throwable
 
-    /**
-     * Adjusts parts of the given [throwable] but not its stack trace.
-     *
-     * This method is intended for usages where the stack trace is modified by multiple [AtriumErrorAdjuster]s (part
-     * of the platform specific [AtriumErrorAdjuster] interface).
-     */
-    fun adjustOtherThanStacks(throwable: Throwable)
+    fun then(next: AtriumErrorAdjuster): AtriumErrorAdjuster = object : AtriumErrorAdjuster {
+        override fun adjust(throwable: Throwable) = this@AtriumErrorAdjuster.adjust(throwable)
+            .let { next.adjust(it) }
+    }
+
+    companion object {
+        fun forStackBacktraceAdjuster(stackBacktraceAdjuster: StackBacktraceAdjuster): AtriumErrorAdjuster =
+            if (stackBacktraceAdjuster === StackBacktraceAdjuster.NoOp) NoOp
+            else AtriumErrorStackAdjuster(stackBacktraceAdjuster)
+    }
+
+    object NoOp : AtriumErrorAdjuster {
+        override fun adjust(throwable: Throwable) = throwable
+    }
 }

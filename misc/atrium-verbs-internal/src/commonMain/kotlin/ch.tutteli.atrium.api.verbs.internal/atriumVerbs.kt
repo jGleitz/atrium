@@ -4,17 +4,15 @@ import ch.tutteli.atrium.api.verbs.internal.factories.InternalExpectationVerbs
 import ch.tutteli.atrium.api.verbs.internal.testfactories.ExpectTestExecutableForTests
 import ch.tutteli.atrium.api.verbs.internal.testfactories.impl.RootExpectTestExecutableForTestsImpl
 import ch.tutteli.atrium.core.ExperimentalNewExpectTypes
+import ch.tutteli.atrium.core.polyfills.PlatformStackBacktraceEntry
 import ch.tutteli.atrium.creating.*
 import ch.tutteli.atrium.logic._logic
 import ch.tutteli.atrium.logic.creating.RootExpectBuilder
 import ch.tutteli.atrium.logic.manualFeature
 import ch.tutteli.atrium.logic.toAssertionCreator
 import ch.tutteli.atrium.logic.toExpectGrouping
-import ch.tutteli.atrium.reporting.AtriumErrorAdjuster
 import ch.tutteli.atrium.reporting.Text
-import ch.tutteli.atrium.reporting.erroradjusters.MultiAtriumErrorAdjuster
 import ch.tutteli.atrium.reporting.erroradjusters.RemoveAtriumFromAtriumError
-import ch.tutteli.atrium.reporting.erroradjusters.RemoveRunnerFromAtriumError
 import ch.tutteli.atrium.testfactories.TestFactoryBuilder
 import ch.tutteli.atrium.testfactories.testFactoryTemplate
 
@@ -48,13 +46,7 @@ fun expectGrouped(
 
 @OptIn(ExperimentalComponentFactoryContainer::class)
 private fun <T> RootExpectBuilder.OptionsChooser<T>.commonOptions() {
-    withComponent(AtriumErrorAdjuster::class) { c ->
-        MultiAtriumErrorAdjuster(
-            c.build<RemoveRunnerFromAtriumError>(),
-            RemoveAtriumButNotAtriumSpecsFromAtriumErrorImpl(),
-            otherAdjusters = emptyList()
-        )
-    }
+    withComponent(RemoveAtriumFromAtriumError::class) { RemoveAtriumButNotAtriumSpecsFromAtriumErrorImpl() }
 }
 
 fun <R> ExpectGrouping.expect(subject: R): Expect<R> =
@@ -69,8 +61,7 @@ private fun <R> ExpectGrouping.expectWithinExpectGroup(subject: R) =
 
 
 expect class RemoveAtriumButNotAtriumSpecsFromAtriumErrorImpl() : RemoveAtriumFromAtriumError {
-    override fun adjust(throwable: Throwable)
-    override fun adjustOtherThanStacks(throwable: Throwable)
+    override fun adjust(stackBacktrace: Sequence<PlatformStackBacktraceEntry>): Sequence<PlatformStackBacktraceEntry>
 }
 
 fun testFactory(setup: TestFactoryBuilder<ExpectTestExecutableForTests>.() -> Unit) =

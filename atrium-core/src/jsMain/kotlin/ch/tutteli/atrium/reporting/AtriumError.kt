@@ -22,17 +22,12 @@ actual class AtriumError private constructor(
 
     internal actual constructor(message: String, rootAssertion: Assertion) : this(message, rootAssertion, Unit)
 
-
-
     override val message: String?
         get() {
-            // workaround for intellij's double print exception message problem. Intellij is outputting the message once
-            // as message and once as part of the stack-trace (no idea why they do it) -- see also
-            val process = js("process.env._") as? String
-            return process?.takeIf {
-                // if there is a process.env and it contains idea, then we assume we deal with intellij-idea
-                it.contains("idea")
-            }?.takeIf {
+            if (runningInIntellij) {
+                // workaround for intellij's double print exception message problem. Intellij is outputting the message once
+                // as message and once as part of the stack-trace (no idea why they do it)
+                //
                 // Currently, kotlin calls `message` twice, once when populating the stacktrace (in this case the
                 // first stacktrace does not contain AtriumError) and once when reporting the failure (here AtriumError
                 // is in the first stacktrace). To work around the bug we return an empty string for the `message`
@@ -43,13 +38,14 @@ actual class AtriumError private constructor(
                 // like intellij-idea does a post-processing of the stack and double prints it again *sight*
                 // in any case, the added benefit of a coloured output seems worth this hack.
                 val stack = Error().stackBacktrace
-                stack.first().startsWith("AtriumError") && stack.any { it.startsWith("Runner.fail") }
-            }?.let {
-                println("\n" + internalMessage)
-                ""
-            } ?: run {
-                internalMessage
+                val isSecondCall = (stack.first().fileName?.startsWith("AtriumError") ?: false) &&
+                        stack.any { it.normalizedLine.contains("Runner.fail") }
+                if (isSecondCall) {
+                    println("\n" + internalMessage)
+                    return ""
+                }
             }
+            return internalMessage
         }
 
     actual companion object {
@@ -66,5 +62,10 @@ actual class AtriumError private constructor(
             rootAssertion: Assertion,
             atriumErrorAdjuster: AtriumErrorAdjuster
         ): AtriumError = createAtriumError(message, rootAssertion, atriumErrorAdjuster)
+
+        private val runningInIntellij by lazy {
+            // if there is a process.env and it contains idea, then we assume we deal with intellij-idea
+            (js("process.env._") as? String)?.contains("idea") ?: false
+        }
     }
 }

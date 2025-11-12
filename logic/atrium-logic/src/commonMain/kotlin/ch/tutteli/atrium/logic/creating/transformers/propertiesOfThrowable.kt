@@ -1,10 +1,10 @@
 package ch.tutteli.atrium.logic.creating.transformers
 
-
 import ch.tutteli.atrium.assertions.Assertion
 import ch.tutteli.atrium.assertions.AssertionGroup
 import ch.tutteli.atrium.assertions.ExplanatoryAssertionGroupType
 import ch.tutteli.atrium.assertions.builders.assertionBuilder
+import ch.tutteli.atrium.core.polyfills.StackBacktraceEntry
 import ch.tutteli.atrium.core.polyfills.fullName
 import ch.tutteli.atrium.core.polyfills.stackBacktrace
 import ch.tutteli.atrium.creating.AssertionContainer
@@ -50,7 +50,7 @@ private fun createExplanation(throwable: Throwable) =
 
 private fun createHints(
     throwable: Throwable,
-    secondStackFrameOfParent: String?
+    secondStackFrameOfParent: StackBacktraceEntry?
 ): Assertion {
     val assertions = mutableListOf(
         createMessageHint(throwable),
@@ -76,7 +76,7 @@ private fun createMessageHint(throwable: Throwable) =
 
 private fun createStackTraceHint(
     throwable: Throwable,
-    secondStackFrameOfParent: String?
+    secondStackFrameOfParent: StackBacktraceEntry?
 ): Assertion {
     val stackTrace = if (secondStackFrameOfParent != null) {
         throwable.stackBacktrace.takeWhile { it != secondStackFrameOfParent }
@@ -84,7 +84,7 @@ private fun createStackTraceHint(
         throwable.stackBacktrace
     }
     val assertions = stackTrace.map {
-        assertionBuilder.explanatory.withExplanation(Text(it)).build()
+        assertionBuilder.explanatory.withExplanation(Text(it.normalizedLine)).build()
     }
 
     return assertionBuilder.list

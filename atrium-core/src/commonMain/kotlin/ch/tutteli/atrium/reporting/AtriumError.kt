@@ -1,7 +1,6 @@
 package ch.tutteli.atrium.reporting
 
 import ch.tutteli.atrium.assertions.Assertion
-import ch.tutteli.atrium.reporting.AtriumError.Companion
 
 /**
  * Indicates that an assertion made by Atrium failed.
@@ -24,13 +23,13 @@ expect class AtriumError internal constructor(message: String, rootAssertion: As
 
     companion object {
         /**
-         * Creates an [AtriumError] and adjusts it with the given [atriumErrorAdjuster] before it is returned.
+         * Creates an [AtriumError], optionally adjusting it with [atriumErrorAdjuster].
          * @return The newly created [AtriumError]
          */
         fun create(
             message: String,
             rootAssertion: Assertion,
-            atriumErrorAdjuster: AtriumErrorAdjuster,
+            atriumErrorAdjuster: AtriumErrorAdjuster = AtriumErrorAdjuster.NoOp,
         ): AtriumError
     }
 }

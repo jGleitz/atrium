@@ -2,7 +2,6 @@ package ch.tutteli.atrium.reporting
 
 import ch.tutteli.atrium.assertions.Assertion
 import ch.tutteli.atrium.core.polyfills.fullName
-import ch.tutteli.atrium.reporting.AtriumError.Companion
 
 /**
  * Indicates that an assertion made by Atrium failed.
