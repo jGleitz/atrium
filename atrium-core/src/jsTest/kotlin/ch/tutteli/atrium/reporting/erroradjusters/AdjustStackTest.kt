@@ -106,6 +106,27 @@ class AdjustStackTest {
         }
     }
 
+    @ExperimentalComponentFactoryContainer
+    @Test
+    fun removeRunner_readsStackOnlyWhenAccessed() {
+        val adjuster = assertRemoveRunner(1)._logic.components.build<AtriumErrorAdjuster>()
+        val throwable = IllegalArgumentException("hello")
+        val originalStack: String = throwable.asDynamic().stack
+        var reads = 0
+        val descriptor: dynamic = js("({ configurable: true })")
+        descriptor.get = { reads++; originalStack }
+        js("Object").defineProperty(throwable, "stack", descriptor)
+
+        adjuster.adjust(throwable)
+        expectWithNoOpErrorAdjuster(reads).toEqual(0)
+
+        expectWithNoOpErrorAdjuster(throwable.stackBacktrace) {
+            it notToContain o entry { it toContain "mocha" }
+        }
+        throwable.stackBacktrace
+        expectWithNoOpErrorAdjuster(reads).toEqual(1)
+    }
+
     @OptIn(ExperimentalNewExpectTypes::class, ExperimentalComponentFactoryContainer::class)
     private fun <T : Any> assertNoOp(subject: T) = createExpect(subject) { NoOpAtriumErrorAdjuster }
 
