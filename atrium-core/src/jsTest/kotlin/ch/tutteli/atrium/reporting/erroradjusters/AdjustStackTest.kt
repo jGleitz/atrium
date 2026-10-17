@@ -127,6 +127,25 @@ class AdjustStackTest {
         expectWithNoOpErrorAdjuster(reads).toEqual(1)
     }
 
+    @ExperimentalComponentFactoryContainer
+    @Test
+    fun removeRunner_filtersNonConfigurableStackEagerly() {
+        val adjuster = assertRemoveRunner(1)._logic.components.build<AtriumErrorAdjuster>()
+        val throwable = IllegalArgumentException("hello")
+        val atriumFrame = "createAtriumError (/atrium/atrium-core/src/jsMain/kotlin/ch/tutteli/atrium/reporting/error.kt:1:1)"
+        val descriptor: dynamic = js("({ configurable: false, writable: true })")
+        descriptor.value = "IllegalArgumentException: hello\n    at $atriumFrame\n" +
+            "    at Runner.run (/node_modules/mocha/lib/runner.js:1:1)"
+        js("Object").defineProperty(throwable, "stack", descriptor)
+
+        adjuster.adjust(throwable)
+
+        val adjustedDescriptor = js("Object").getOwnPropertyDescriptor(throwable, "stack")
+        expectWithNoOpErrorAdjuster(js("Object").hasOwn(adjustedDescriptor, "get") as Boolean).toEqual(false)
+        expectWithNoOpErrorAdjuster(adjustedDescriptor.value as String).toEqual("    at $atriumFrame")
+        expectWithNoOpErrorAdjuster(throwable.stackBacktrace).toEqual(listOf(atriumFrame))
+    }
+
     @OptIn(ExperimentalNewExpectTypes::class, ExperimentalComponentFactoryContainer::class)
     private fun <T : Any> assertNoOp(subject: T) = createExpect(subject) { NoOpAtriumErrorAdjuster }
 
